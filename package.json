@@ -1,0 +1,56 @@
+{
+    "name": "fastify-ts-starter",
+    "version": "1.2.0",
+    "description": "fastify app starter in typescript",
+    "main": "app.ts",
+    "type": "module",
+    "scripts": {
+        "tsc": "tsc",
+        "build": "tsc",
+        "dev": "tsx watch ./src/app.ts",
+        "start": "npm run build && node dist/app.js",
+        "lint": "eslint . --ext .ts"
+    },
+    "keywords": [
+        "node",
+        "fastify",
+        "typescript",
+        "starter",
+        "eslint"
+    ],
+    "repository": {
+        "git": "https://github.com/mikecabana/fastify-ts-starter.git"
+    },
+    "author": "Michael Cabana <mikeycabana@gmail.com>",
+    "contributors": [
+        {
+            "name": "Michael Cabana",
+            "email": "mikeycabana@gmail.com",
+            "url": "https://github.com/mikecabana"
+        }
+    ],
+    "license": "MIT",
+    "devDependencies": {
+        "@types/jsonwebtoken": "^9.0.6",
+        "@types/node": "^20.12.12",
+        "@types/ws": "^8.5.10",
+        "@typescript-eslint/eslint-plugin": "^7.10.0",
+        "@typescript-eslint/parser": "^7.10.0",
+        "eslint": "^8.57.0",
+        "tsx": "^4.11.0",
+        "typescript": "^5.4.5"
+    },
+    "dependencies": {
+        "@fastify/cookie": "^9.3.1",
+        "@fastify/cors": "^9.0.1",
+        "@fastify/csrf-protection": "^6.4.1",
+        "@fastify/helmet": "^11.1.1",
+        "@fastify/session": "^10.9.0",
+        "@fastify/swagger": "^8.14.0",
+        "@fastify/swagger-ui": "^3.0.0",
+        "@fastify/websocket": "^10.0.1",
+        "dotenv": "^16.4.5",
+        "fastify": "^4.27.0",
+        "jsonwebtoken": "^9.0.2"
+    }
+}
