@@ -9,13 +9,15 @@ import swaggerUi from '@fastify/swagger-ui';
 import websocket from '@fastify/websocket';
 import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
-
 import { WebSocket } from 'ws';
+
+type Notify = { message: string; ctx: { userId: string } };
 
 dotenv.config();
 
 const PORT = Number(process.env.PORT || 3000);
-const SECRET = process.env.SECRET || 'secretsecretsecretsecretsecretsecretsecretsecretsecretsecret';
+const SECRET = `${process.env.SECRET}`;
+const SUPABASE_SECRET = `${process.env.SUPABASE_SECRET}`;
 
 const clients = new Map<string, WebSocket>();
 
@@ -26,6 +28,19 @@ const isAuthenticated = (token: string | undefined) => {
 
 	try {
 		jwt.verify(token, SECRET, { algorithms: ['HS256'] });
+		return true;
+	} catch (err) {
+		return false;
+	}
+};
+
+const isAuthenticatedSupabase = (token: string | undefined) => {
+	if (!token) {
+		return false;
+	}
+
+	try {
+		jwt.verify(token, SUPABASE_SECRET, { algorithms: ['HS256'] });
 		return true;
 	} catch (err) {
 		return false;
@@ -43,15 +58,15 @@ await app.register(session, { secret: SECRET });
 await app.register(csrf, { cookieOpts: { signed: true }, sessionPlugin: '@fastify/session' });
 
 await app.register(websocket);
-await app.register(async function (fastify) {
+await app.register(async (fastify) => {
 	fastify.addHook('preValidation', async (req, rep) => {
-		if (!isAuthenticated(req.headers.authorization)) {
+		const { token } = req.query as { token: string | undefined };
+		if (!token || !isAuthenticated(token)) {
 			await rep.code(401).send('Unauthorized');
 		}
 	});
-	fastify.get('/ws', { websocket: true }, (socket, req) => {
-		// const socketId = req.headers['sec-websocket-key'] as string;
 
+	fastify.get('/ws', { websocket: true }, (socket, req) => {
 		// connect using the following endpoint: localhost:3000/ws?id=abc123
 		const { id } = req.query as { id: string };
 
@@ -78,6 +93,35 @@ await app.register(swaggerUi, { routePrefix: '/docs' });
 //     return { token };
 // });
 
+await app.register(async (fastify) => {
+	fastify.addHook('preValidation', async (req, rep) => {
+		if (!isAuthenticatedSupabase(req.headers.authorization)) {
+			await rep.code(401).send('Unauthorized');
+		}
+	});
+	// get count of clients connected to socket server
+	fastify.get('/ws/stats', (req, res) => {
+		res.send({
+			clients: clients.size,
+		});
+	});
+
+	fastify.post('/notify', (req, res) => {
+		const { message, ctx } = req.body as Notify;
+
+		if (!message || !ctx || !ctx.userId) {
+			return res.code(400).send('Missing message and or context');
+		}
+
+		const { userId } = ctx;
+
+		const socket = clients.get(userId);
+		if (socket) {
+			socket.send(message);
+		}
+	});
+});
+
 app.get(
 	'/ping',
 	{
@@ -96,13 +140,6 @@ app.post('/token', (req, res) => {
 		return res.code(404).send('Missing secret');
 	}
 	res.code(201).send(jwt.sign({}, secret, { algorithm: 'HS256', expiresIn: '1y' }));
-});
-
-// get count of clients connected to socket server
-app.get('/ws/stats', (req, res) => {
-	res.send({
-		clients: clients.size,
-	});
 });
 
 // run the server!
